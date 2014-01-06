@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name			Eulili_Bookmark-List Highlighter
 // @namespace		GC Review Bookmark-List
-// @version			1.17
+// @version			1.18
 // @downloadURL   	https://ssl.webpack.de/eulili.de/grease_eigene/Bookmark-List_Highlighter/Bookmark-List_Highlighter.user.js
 // @updateURL		http://www.eulili.de/grease_eigene/Bookmark-List_Highlighter/Bookmark-List_Highlighter.user.js
 // @include			http://www.geocaching.com/bookmarks/view.aspx*
@@ -22,6 +22,7 @@
 // * v01.15     2013-12-19 EU   Nutzung für SBA und Freischaltung eingerichtet
 // * v01.16		2013-12-25 EU	Umstellung Script bei der Suche nach Datum
 // * v01.17		2013-12-29 EU	Bugfix (Reihenfolge der Abfragen geändert)
+// * v01.18		2013-01-06 EU	Bugfix (Cache der bereits archiviert ist nicht mehr laden)
 
 
 //  Icon image data.
@@ -52,10 +53,11 @@ $(document).ready(function() {
 			pruef_datum = ergebnis[0];
 			uebergehen=1;
 		} 
-		else if (ergebnis=input.match(/(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.([0-9]{4})/)) {
-			if (ergebnis[1]<=9) { ergebnis[1] = "0"+ergebnis[1]; }
-			if (ergebnis[2]<=9) { ergebnis[1] = "0"+ergebnis[2]; }
-			if (ergebnis[3]<=9) { ergebnis[1] = "0"+ergebnis[3]; }
+		else if (ergebnis=input.match(/([1-9]|0[1-9]|[12][0-9]|3[01])\.([1-9]|0[1-9]|1[012])\.([0-9]{4})/)) {
+			if (ergebnis[1].length==1) { ergebnis[1] = "0"+ergebnis[1]; }
+			if (ergebnis[2].length==1) { ergebnis[1] = "0"+ergebnis[2]; }
+			if (ergebnis[3].length==1) { ergebnis[1] = "0"+ergebnis[3]; }
+			//alert (input+" --- "+ergebnis[3]+"-"+ergebnis[2]+"-"+ergebnis[1]);
 			pruef_datum = ergebnis[3]+"-"+ergebnis[2]+"-"+ergebnis[1];
 			uebergehen=1;
 		}
@@ -76,7 +78,11 @@ $(document).ready(function() {
 				$(this).parent().prev().children('td:nth-child(4)').css('vertical-align','top');
 				$(this).parent().prev().children('td:nth-child(5)').css('vertical-align','top');
 			// Prüfläufe "SBA" und "Freischaltung"
-				if (ergebnis=input.match(/(SBA )/)) {
+				if ($(this).parent().prev().children('td:nth-child(5)').find('span').hasClass('OldWarning')) {
+					// Prüfung ob Cache bereits archiviert --> Keine Ausführung der beiden folgenden Bereiche
+				}
+				else if ((ergebnis=input.match(/(SBA )/))||(ergebnis=input.match(/(Freischaltung)/))) {
+					// Prüfung ob Cache einen SBA eintrag hat
 					++i1;
 					// GC-Code ausfiltern aus der entsprechenden Zeile
 					var gccode1 = $(this).parent().prev().children('td:nth-child(4)').text();
@@ -87,7 +93,7 @@ $(document).ready(function() {
 					linktext += 'alt='+gccode1+' title="alle markierten öffnen" src='+UpArrowImg+'></a>';
 					$(this).parent().prev().children('td:nth-child(3)').append(linktext);
 				}
-				else if (ergebnis=input.match(/(Freischaltung)/)) {
+				else {
 					++i2;
 					$(this).parent().prev().closest('[id$="dataRow"]')
 						.find("td:nth-child(1) :input").addClass('SBACheck');
