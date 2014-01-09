@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name			Eulili_Bookmark-List Highlighter
 // @namespace		GC Review Bookmark-List
-// @version			1.18
+// @version			1.19
 // @downloadURL   	https://ssl.webpack.de/eulili.de/grease_eigene/Bookmark-List_Highlighter/Bookmark-List_Highlighter.user.js
 // @updateURL		http://www.eulili.de/grease_eigene/Bookmark-List_Highlighter/Bookmark-List_Highlighter.user.js
 // @include			http://www.geocaching.com/bookmarks/view.aspx*
@@ -23,6 +23,7 @@
 // * v01.16		2013-12-25 EU	Umstellung Script bei der Suche nach Datum
 // * v01.17		2013-12-29 EU	Bugfix (Reihenfolge der Abfragen geändert)
 // * v01.18		2013-01-06 EU	Bugfix (Cache der bereits archiviert ist nicht mehr laden)
+// * v01.19		2013-01-06 EU	Bugfix (Fehlerhafte Datumsauswertung) + Änderung der Löschfunktion und Öffnen-Funktion (neue Buttons oben)
 
 
 //  Icon image data.
@@ -36,13 +37,9 @@ var UpArrowImg =
 	'A6%AF%E5%F8%04%9C%81%18%A0%C1r%0A%1A%93%C6%C0H%00%03%22%00%3B'
 
 
-//var input2=new Array;
-
-
 var cachelink= new Array;
 var uebergehen = 0;
 var i1 = 0;
-var i2 = 0;
 var zzz;
 var linktext ="";
 $(document).ready(function() {
@@ -55,8 +52,8 @@ $(document).ready(function() {
 		} 
 		else if (ergebnis=input.match(/([1-9]|0[1-9]|[12][0-9]|3[01])\.([1-9]|0[1-9]|1[012])\.([0-9]{4})/)) {
 			if (ergebnis[1].length==1) { ergebnis[1] = "0"+ergebnis[1]; }
-			if (ergebnis[2].length==1) { ergebnis[1] = "0"+ergebnis[2]; }
-			if (ergebnis[3].length==1) { ergebnis[1] = "0"+ergebnis[3]; }
+			if (ergebnis[2].length==1) { ergebnis[2] = "0"+ergebnis[2]; }
+			if (ergebnis[3].length==1) { ergebnis[3] = "0"+ergebnis[3]; }
 			//alert (input+" --- "+ergebnis[3]+"-"+ergebnis[2]+"-"+ergebnis[1]);
 			pruef_datum = ergebnis[3]+"-"+ergebnis[2]+"-"+ergebnis[1];
 			uebergehen=1;
@@ -64,7 +61,7 @@ $(document).ready(function() {
 		if (uebergehen==1) {  // "Prüfen ob Datum vorhanden"
 			var action_date = Date.parse(pruef_datum);
 			var curr = new Date();
-			if(((curr-action_date-86400000)>=0)) {
+			if(((curr-action_date)>=0)) {
 			// Hintergrundfarbe auf GELB setzen
 				$(this).parent().children('td').css('font-weight','bold').css('background-color', '#FFFFAA');
 				$(this).parent().prev().children('td').css('font-weight','bold').css('background-color', '#FFFFAA');
@@ -81,7 +78,7 @@ $(document).ready(function() {
 				if ($(this).parent().prev().children('td:nth-child(5)').find('span').hasClass('OldWarning')) {
 					// Prüfung ob Cache bereits archiviert --> Keine Ausführung der beiden folgenden Bereiche
 				}
-				else if ((ergebnis=input.match(/(SBA )/))||(ergebnis=input.match(/(Freischaltung)/))) {
+				else {
 					// Prüfung ob Cache einen SBA eintrag hat
 					++i1;
 					// GC-Code ausfiltern aus der entsprechenden Zeile
@@ -92,14 +89,6 @@ $(document).ready(function() {
 					linktext += 'title="alle bis hier als Review-Seite öffnen"><img id=LfdNr'+i1+' ';
 					linktext += 'alt='+gccode1+' title="alle markierten öffnen" src='+UpArrowImg+'></a>';
 					$(this).parent().prev().children('td:nth-child(3)').append(linktext);
-				}
-				else {
-					++i2;
-					$(this).parent().prev().closest('[id$="dataRow"]')
-						.find("td:nth-child(1) :input").addClass('SBACheck');
-					$(this).parent().prev().closest('[id$="dataRow"]')
-						.find("td:nth-child(1) :input").attr('checked','checked');
-					$('.CheckSBA').attr('checked','checked');
 				}
 			uebergehen = 0;	
 			};
@@ -118,31 +107,30 @@ $(document).ready(function() {
 	});
 
 // Buttons oben einfügen wenn freigeschaltete Caches gefunden wurden
-	if (i2>1) {
-		Text_Btn1  = "<Button id=CheckPub name=CheckPub type=Button>"+i2+" ";
-		Text_Btn1 += "bereits freigeschaltete Caches von Liste entfernen</Button>";
-		Text_Btn2  = "<Button id=CheckPub2 name=CheckPub2 type=Button>"+i2+"  ";
-		Text_Btn2 += "Caches nochmals auf Freischaltung prüfen</Button>";
-		$('#ctl00_ContentBody_ListInfo_uxAbuseReport').prev().append(Text_Btn1);
+	if (i1>1) {
+		Text_Btn1  = "<Button id=CheckPub1 name=CheckPub1 type=Button> alle "+i1;
+		Text_Btn1 += " Caches von Liste entfernen</Button>";
+		Text_Btn2  = "<Button id=CheckPub2 name=CheckPub2 type=Button> alle "+i1;
+		Text_Btn2 += " Caches öffnen</Button>";
 		$('#ctl00_ContentBody_ListInfo_uxAbuseReport').prev().append(Text_Btn2);
+		$('#ctl00_ContentBody_ListInfo_uxAbuseReport').prev().append(Text_Btn1);
 	}
 
-// Aufruf "Löschen der Einträge bereits freigeschalteter Caches"        
-	$( '#CheckPub' ).click(function() {
+// Aufruf "Löschen der Einträge aus Liste"        
+	$( '#CheckPub1' ).click(function() {
 		$('.SBACheck').each(function( index ) {
 			$(this).attr('checked','checked');
 		});
-		//setTimeout(function() {
-			$('#ctl00_ContentBody_ListInfo_btnDelete').trigger('click');
-		//}, 1000);
+		$('#ctl00_ContentBody_ListInfo_btnDelete').trigger('click');
 	});
 
-// Aufruf "Nochmals prüfen ob freigeschaltet"
+// Aufruf "Öffnen der markierten Einträge in Liste"
 	$( '#CheckPub2' ).click(function() {
-		$('.SBACheck').each(function( index ) {
-			$(this).attr('checked','checked');
-		});
-			$('#ctl00_ContentBody_ListInfo_MassPublish').trigger('click');
+    	$('[id^="LfdNr"]').each(function( index ) {
+    		window.open("http://www.geocaching.com/admin/review.aspx?wp="+$(this).attr('alt'),"Review-Seite"+$(this).attr('alt'));
+            $(this).closest('[id$="dataRow"]').find("td:nth-child(1) :input").attr('checked','checked');
+    
+    	});
 	});
 
 $( '[id^="LfdNr"]' ).click(function() {
@@ -156,8 +144,4 @@ $( '[id^="LfdNr"]' ).click(function() {
 
 
 });
-
-
-
-
 
